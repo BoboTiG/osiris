@@ -1,8 +1,9 @@
 import imaplib
 import logging
+from collections import defaultdict
 from contextlib import suppress
 from email.header import decode_header
-from typing import Any, List, Union
+from typing import Any, Dict, List, Union
 
 from dataclasses import dataclass, field
 
@@ -15,17 +16,21 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Client:
-    server: str = ""
-    user: str = ""
+    server: str
+    user: str
     conn: imaplib.IMAP4 = field(default=None, init=False, repr=False)
     password: str = field(default=None, repr=False)
+    stats: Dict[str, int] = field(default_factory=dict, repr=False)
+
+    def __post_init__(self):
+        self.stats = defaultdict(int)
 
     def __enter__(self) -> "Client":
         log.debug(f"Loading {type(self).__name__} ...")
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
-        log.debug(f"Stopping {type(self).__name__} ...")
+        log.debug(f"Stopping {type(self).__name__}: {dict(self.stats.items())} ...")
         self.close()
 
     def close(self):
@@ -46,6 +51,7 @@ class Client:
         imap = imaplib.IMAP4_SSL if secure else imaplib.IMAP4
         self.conn = imap(self.server, *args, **kwargs)
         self.conn.login(self.user, self.password)
+        # self.conn.enable("UTF8=ACCEPT")
         self.conn.select()
         log.info(f"Added {self}")
 
@@ -102,10 +108,13 @@ class Client:
 
                 if isinstance(val, bytes):
                     val, encoding = decode_header(val.decode("utf-8"))[0]
-                    if encoding:
-                        val = val.decode(encoding)
-                    elif isinstance(val, bytes):
-                        val = val.decode("utf-8")
+                    if not encoding:
+                        encoding = "utf-8"
+                    if isinstance(val, bytes):
+                        try:
+                            val = val.decode(encoding)
+                        except UnicodeDecodeError:
+                            val = val.decode("latin-1")
 
                 ret[uid][key] = val.strip()
 
@@ -137,6 +146,9 @@ class Client:
         if typ != "OK":
             raise dat[0]
 
+        if "no_stats" not in kwargs:
+            self.stats["copy"] += 1
+
     def action_delete(self, uids: UIDs, **kwargs) -> None:
         """Delete email(s)."""
 
@@ -151,6 +163,9 @@ class Client:
         if typ != "OK":
             raise dat[0]
 
+        if "no_stats" not in kwargs:
+            self.stats["delete"] += 1
+
         self.conn.expunge()
 
     def action_move(self, uids: UIDs, folder: str, **kwargs) -> None:
@@ -164,5 +179,7 @@ class Client:
 
         # There is no explicit MOVE command for IMAP so we have to
         # make a copy into the destination folder and delete the original.
-        self.action_copy(uids, folder)
-        self.action_delete(uids)
+        self.action_copy(uids, folder, no_stats=True)
+        self.action_delete(uids, no_stats=True)
+
+        self.stats["move"] += 1

@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 @dataclass
 class Osiris:
     file: Union[Path, str] = field(repr=False)
-    force: bool = False
+    fiorce: bool = False
     rules: Rules = None
     clients: List[Client] = field(default_factory=list)
 
@@ -48,17 +48,16 @@ class Osiris:
         for client in self.clients:
             with client:
                 client.connect()
-                emails = client.emails(force=self.force)
+                emails = client.emails(force=self.fiorce)
                 if not emails:
                     log.debug(f"[{client.user}] No emails")
                     continue
 
                 rules = self.rules.get(client.user)
-                for uid, data in list(emails.items()):
-                    for name, (criterias, actions) in rules.items():
+                for name, (criterias, actions) in rules.items():
+                    for uid, data in list(emails.items()):
                         # Check if the email meets critierias of that rule
                         if not eval(criterias, None, data):
-                            log.debug(f"[{client.user}] Rule {name!r} does not match email {uid}")
                             continue
 
                         log.debug(f"[{client.user}] Rule {name!r} matches email {uid}")
@@ -74,7 +73,9 @@ class Osiris:
                                 log.error(exc)
                                 raise InvalidAction(action)
                             except:  # noqa
-                                log.exception(f"Error handling action {action!r} on email {uid}")
+                                log.exception(
+                                    f"Error handling action {action!r} on email {uid}"
+                                )
 
                         emails.pop(uid, None)
 
