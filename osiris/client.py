@@ -1,5 +1,6 @@
 import imaplib
 import logging
+import re
 from collections import defaultdict
 from contextlib import suppress
 from email.header import decode_header
@@ -58,8 +59,9 @@ class Client:
     def emails(self, force: bool = False) -> List[str]:
         ret = {}
         # reg_from = re.compile(b"<(.+)>")
+        reg_uid = re.compile(br"UID (\d+)")
 
-        search = "(ALL)" if force else "(UNSEEN)"
+        search = "(ALL)" if force else "(NOT DELETED)"
         typ, dat = self.conn.uid("search", None, search)
         if typ != "OK":
             raise dat[0]
@@ -68,20 +70,20 @@ class Client:
         if not uids:
             return ret
 
-        all_uids = b",".join(uids)
-
         #  BODY.PEEK to not alter the message state
         typ, dat = self.conn.uid(
-            "fetch", all_uids, "(BODY.PEEK[HEADER.FIELDS (SUBJECT TO FROM)])"
+            "fetch", b",".join(uids), "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT TO)])"
         )
         if typ != "OK":
             raise dat[0]
 
-        for uid, data in zip(uids, dat):
+        for data in dat:
+            info = data[0]
             data = b"".join(data[1:]).strip().splitlines()
             if not data:
                 continue
 
+            uid = reg_uid.findall(info)[0]
             ret[uid] = {}
             for line in data:
                 line = line.lower().strip()
