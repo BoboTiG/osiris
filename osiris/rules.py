@@ -34,7 +34,8 @@ class Rules:
 
     def get(self, user: str):
         section = f"{user}:rules"
-        return {k: self.read_rule(v) for k, v in self.parser.items(section)}
+        rules = sorted(self.parser.items(section))
+        return {k: self.read_rule(v) for k, v in rules}
 
     def server(self, user: str) -> str:
         return self.parser.get(user, "server")
