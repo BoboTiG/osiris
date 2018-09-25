@@ -60,7 +60,9 @@ class Osiris:
                         if not eval(criterias, None, data):
                             continue
 
-                        log.debug(f"[{client.user}] Rule {name!r} matches email {uid}")
+                        log.info(
+                            f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
+                        )
 
                         # Apply actions
                         for action in actions:

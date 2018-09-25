@@ -13,28 +13,16 @@ def main(args: Optional[List[str]] = None) -> int:
 
     cli_args = ArgumentParser()
     cli_args.add_argument(
-        "-c",
-        "--config-file",
-        default="rules.ini",
-        help="the configuration file",
+        "-c", "--config-file", default="rules.ini", help="the configuration file"
     )
     cli_args.add_argument(
-        "-f",
-        "--force",
-        action="store_true",
-        help="force a full scan",
+        "-f", "--force", action="store_true", help="force a full scan"
     )
     cli_args.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        help="enable debug logging",
+        "-d", "--debug", action="store_true", help="enable debug logging"
     )
     cli_args.add_argument(
-        "-l",
-        "--list-actions",
-        action="store_true",
-        help="list available actions",
+        "-l", "--list-actions", action="store_true", help="list available actions"
     )
     cli_args.add_argument("-v", "--version", action="version", version=__version__)
 
@@ -50,6 +38,8 @@ def main(args: Optional[List[str]] = None) -> int:
 
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     if not options.config_file:
         print("Error: the following arguments are required: -c/--config-file")

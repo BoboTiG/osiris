@@ -54,7 +54,7 @@ class Client:
         self.conn.login(self.user, self.password)
         # self.conn.enable("UTF8=ACCEPT")
         self.conn.select()
-        log.info(f"Added {self}")
+        log.debug(f"Added {self}")
 
     def emails(self, force: bool = False) -> List[str]:
         ret = {}
