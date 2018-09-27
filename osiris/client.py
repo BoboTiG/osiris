@@ -149,7 +149,7 @@ class Client:
             raise dat[0]
 
         if "no_stats" not in kwargs:
-            self.stats["copy"] += 1
+            self.stats["copy"] += uids.count(b",") + 1
 
     def action_delete(self, uids: UIDs, **kwargs) -> None:
         """Delete email(s)."""
@@ -166,7 +166,7 @@ class Client:
             raise dat[0]
 
         if "no_stats" not in kwargs:
-            self.stats["delete"] += 1
+            self.stats["delete"] += uids.count(b",") + 1
 
         self.conn.expunge()
 
@@ -184,4 +184,4 @@ class Client:
         self.action_copy(uids, folder, no_stats=True)
         self.action_delete(uids, no_stats=True)
 
-        self.stats["move"] += 1
+        self.stats["move"] += uids.count(b",") + 1

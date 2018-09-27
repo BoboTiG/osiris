@@ -1,4 +1,6 @@
+import imaplib
 import logging
+from collections import defaultdict
 from os import getenv
 from pathlib import Path
 from typing import Any, List, Union
@@ -53,6 +55,7 @@ class Osiris:
                     log.debug(f"[{client.user}] No emails")
                     continue
 
+                todo = defaultdict(list)
                 rules = self.rules.get(client.user)
                 for name, (criterias, actions) in rules.items():
                     for uid, data in list(emails.items()):
@@ -64,22 +67,26 @@ class Osiris:
                             f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
                         )
 
-                        # Apply actions
+                        # Regroup actions for efficiency
                         for action in actions:
-                            folder = None
-                            if ":" in action:
-                                action, folder = action.split(":", 1)
-                            try:
-                                getattr(client, f"action_{action}")(uid, folder=folder)
-                            except AttributeError as exc:
-                                log.error(exc)
-                                raise InvalidAction(action)
-                            except:  # noqa
-                                log.exception(
-                                    f"Error handling action {action!r} on email {uid}"
-                                )
+                            todo[action].append(uid)
 
                         emails.pop(uid, None)
+
+                # Batch mode (deelte several UIDs, ... )
+                for action, uids in todo.items():
+                    if ":" in action:
+                        action, folder = action.split(":", 1)
+                    else:
+                        folder = None
+
+                    try:
+                        getattr(client, f"action_{action}")(uids, folder=folder)
+                    except AttributeError as exc:
+                        log.error(exc)
+                        raise InvalidAction(action)
+                    except imaplib.IMAP4.abort:
+                        log.error("Error happened, will retry later")
 
     @staticmethod
     def password_envar(user: str) -> str:
