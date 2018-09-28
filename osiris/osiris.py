@@ -19,6 +19,8 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Osiris:
+    """The judge: it will instanciante clients and rules to perform actions."""
+
     file: Union[Path, str] = field(repr=False)
     full: bool = False
     rules: Rules = None
@@ -61,7 +63,7 @@ class Osiris:
         )
 
     def judge(self) -> None:
-        """Judgement day ^^"""
+        """Judgement day: apply actions on emails based on rules."""
 
         run_at = datetime.now().replace(second=0, microsecond=0)
 
@@ -111,6 +113,7 @@ class Osiris:
 
     @staticmethod
     def password_envar(user: str) -> str:
+        """Format the required envar name for a given user."""
         envar = f"{user.upper()}_PWD"
         for char in {"@", ".", "+", "-"}:
             envar = envar.replace(char, "_")

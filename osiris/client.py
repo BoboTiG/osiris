@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from contextlib import suppress
 from email.header import decode_header
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from dataclasses import dataclass, field
 
@@ -17,6 +17,8 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Client:
+    """Informations of a user that will be judged soon."""
+
     server: str
     user: str
     conn: imaplib.IMAP4 = field(default=None, init=False, repr=False)
@@ -35,6 +37,7 @@ class Client:
         self.close()
 
     def close(self):
+        """Ensure to close everything correctly."""
         if getattr(self, "conn", None):
             if self.conn.state == "SELECTED":
                 self.conn.logout()
@@ -57,6 +60,8 @@ class Client:
         log.debug(f"Added {self}")
 
     def emails(self, full: bool = False) -> List[str]:
+        """Retreive emails."""
+
         ret = {}
         # reg_from = re.compile(b"<(.+)>")
         reg_uid = re.compile(br"UID (\d+)")
@@ -125,7 +130,7 @@ class Client:
     # Actions
 
     @staticmethod
-    def actions():
+    def actions() -> List[Tuple[str, str]]:
         """Return a list of all available actions."""
 
         doable = []
