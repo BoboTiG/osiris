@@ -1,6 +1,8 @@
 import imaplib
 import logging
+import sqlite3
 from collections import defaultdict
+from datetime import datetime
 from os import getenv
 from pathlib import Path
 from typing import Any, List, Union
@@ -46,7 +48,23 @@ class Osiris:
             client = Client(server=server, user=user, password=password)
             self.clients.append(client)
 
+        self.db = sqlite3.connect("statistics.db")
+        c = self.db.cursor()
+        c.execute(
+            "CREATE TABLE IF NOT EXISTS osiris("
+            "       id     INTEGER PRIMARY KEY,"
+            "       run_at DATE,"
+            "       user   TEXT,"
+            "       action TEXT,"
+            "       count  INT"
+            ")"
+        )
+
     def judge(self) -> None:
+        """Judgement day ^^"""
+
+        run_at = datetime.now().replace(second=0, microsecond=0)
+
         for client in self.clients:
             with client:
                 client.connect()
@@ -88,9 +106,21 @@ class Osiris:
                     except imaplib.IMAP4.abort:
                         log.error("Error happened, will retry later")
 
+                if client.stats:
+                    self.save_stats(run_at, client)
+
     @staticmethod
     def password_envar(user: str) -> str:
         envar = f"{user.upper()}_PWD"
         for char in {"@", ".", "+", "-"}:
             envar = envar.replace(char, "_")
         return envar
+
+    def save_stats(self, run_at: datetime, client: Client) -> None:
+        """Save client statistics in the local dataase."""
+        user = client.user
+        c = self.db.cursor()
+        sql = "INSERT INTO osiris(run_at, user, action, count) VALUES(?,?,?,?)"
+        for action, count in client.stats.items():
+            c.execute(sql, (run_at, user, action, count))
+        self.db.commit()

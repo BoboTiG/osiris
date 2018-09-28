@@ -25,6 +25,10 @@ Cron job line:
 
     python -m osiris --config-file /path/to/rules.ini [--debug] [--force]
 
+## Statistics
+
+A simple SQLite3 database named `statistics.db` will be filled with actions done for each and every user.
+
 ## Developing
 
     python -m pip install pre-commit

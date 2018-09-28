@@ -39,7 +39,7 @@ def main(args: Optional[List[str]] = None) -> int:
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.WARNING)
 
     if not options.config_file:
         print("Error: the following arguments are required: -c/--config-file")
