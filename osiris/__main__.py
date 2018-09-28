@@ -16,7 +16,7 @@ def main(args: Optional[List[str]] = None) -> int:
         "-c", "--config-file", default="rules.ini", help="the configuration file"
     )
     cli_args.add_argument(
-        "-f", "--force", action="store_true", help="force a full scan"
+        "-f", "--full", action="store_true", help="perform a full scan of the inbox"
     )
     cli_args.add_argument(
         "-d", "--debug", action="store_true", help="enable debug logging"
@@ -46,7 +46,7 @@ def main(args: Optional[List[str]] = None) -> int:
         return 1
 
     try:
-        with Osiris(file=options.config_file, force=options.force) as osiris:
+        with Osiris(file=options.config_file, full=options.full) as osiris:
             osiris.judge()
         return 0
     except OsirisError as exc:

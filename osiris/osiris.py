@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 @dataclass
 class Osiris:
     file: Union[Path, str] = field(repr=False)
-    force: bool = False
+    full: bool = False
     rules: Rules = None
     clients: List[Client] = field(default_factory=list)
 
@@ -68,7 +68,7 @@ class Osiris:
         for client in self.clients:
             with client:
                 client.connect()
-                emails = client.emails(force=self.force)
+                emails = client.emails(full=self.full)
                 if not emails:
                     log.debug(f"[{client.user}] No emails")
                     continue

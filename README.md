@@ -23,7 +23,7 @@ See `rules.ini` for examples.
 
 Cron job line:
 
-    python -m osiris --config-file /path/to/rules.ini [--debug] [--force]
+    python -m osiris --config-file /path/to/rules.ini [--debug] [--full]
 
 ## Statistics
 

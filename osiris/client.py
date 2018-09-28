@@ -56,12 +56,12 @@ class Client:
         self.conn.select()
         log.debug(f"Added {self}")
 
-    def emails(self, force: bool = False) -> List[str]:
+    def emails(self, full: bool = False) -> List[str]:
         ret = {}
         # reg_from = re.compile(b"<(.+)>")
         reg_uid = re.compile(br"UID (\d+)")
 
-        search = "(ALL)" if force else "(NOT DELETED)"
+        search = "(ALL)" if full else "(NOT DELETED)"
         typ, dat = self.conn.uid("search", None, search)
         if typ != "OK":
             raise dat[0]
