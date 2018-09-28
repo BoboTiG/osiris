@@ -63,7 +63,7 @@ class Osiris:
                         if not eval(criterias, None, data):
                             continue
 
-                        log.info(
+                        log.debug(
                             f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
                         )
 

@@ -142,13 +142,15 @@ class Client:
         if isinstance(uids, list):
             uids = b",".join(set(uids))
 
-        plural = "s" if b"," in uids else ""
-        log.info(f"[{self.user}] Copying email{plural} {uids!r} to {folder!r}")
+        if "inner" not in kwargs:
+            plural = "s" if b"," in uids else ""
+            log.info(f"[{self.user}] Copying email{plural} {uids!r} to {folder!r}")
+
         typ, dat = self.conn.uid("copy", uids, folder)
         if typ != "OK":
             raise dat[0]
 
-        if "no_stats" not in kwargs:
+        if "inner" not in kwargs:
             self.stats["copy"] += uids.count(b",") + 1
 
     def action_delete(self, uids: UIDs, **kwargs) -> None:
@@ -157,15 +159,16 @@ class Client:
         if isinstance(uids, list):
             uids = b",".join(set(uids))
 
-        plural = "s" if b"," in uids else ""
-        log.info(f"[{self.user}] Deleting email{plural} {uids!r}")
+        if "inner" not in kwargs:
+            plural = "s" if b"," in uids else ""
+            log.info(f"[{self.user}] Deleting email{plural} {uids!r}")
 
         # STORE the Deleted flag on the given email(s)
         typ, dat = self.conn.uid("store", uids, "+FLAGS", "\\Deleted")
         if typ != "OK":
             raise dat[0]
 
-        if "no_stats" not in kwargs:
+        if "inner" not in kwargs:
             self.stats["delete"] += uids.count(b",") + 1
 
         self.conn.expunge()
@@ -181,7 +184,7 @@ class Client:
 
         # There is no explicit MOVE command for IMAP so we have to
         # make a copy into the destination folder and delete the original.
-        self.action_copy(uids, folder, no_stats=True)
-        self.action_delete(uids, no_stats=True)
+        self.action_copy(uids, folder, inner=True)
+        self.action_delete(uids, inner=True)
 
         self.stats["move"] += uids.count(b",") + 1
