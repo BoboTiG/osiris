@@ -24,6 +24,7 @@ def main(args: Optional[List[str]] = None) -> int:
     cli_args.add_argument(
         "-l", "--list-actions", action="store_true", help="list available actions"
     )
+    cli_args.add_argument("-q", "--quiet", action="store_true", help="silent mode")
     cli_args.add_argument("-v", "--version", action="version", version=__version__)
 
     options = cli_args.parse_args(args)
@@ -36,10 +37,10 @@ def main(args: Optional[List[str]] = None) -> int:
             print(" ", doc)
         return 0
 
-    if options.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.WARNING)
+    level = logging.WARNING
+    if not options.quiet:
+        level = logging.DEBUG if options.debug else logging.INFO
+    logging.basicConfig(level=level)
 
     if not options.config_file:
         print("Error: the following arguments are required: -c/--config-file")
