@@ -64,7 +64,9 @@ class Client:
         log.debug(f"Added {self}")
 
     @staticmethod
-    def dec(header):
+    def dec(header: Union[bytes, str]) -> Dict[str, str]:
+        """Decode an email header, if necessary."""
+
         if isinstance(header, bytes):
             header = header.decode("latin-1")
 
@@ -93,7 +95,6 @@ class Client:
             raise dat[0]
 
         ret = {}
-        # reg_from = re.compile(b"<(.+)>")
         reg_uid = re.compile(br"UID (\d+)")
 
         for raw_data in dat:
@@ -102,11 +103,13 @@ class Client:
 
             command, data = raw_data
             uid = reg_uid.findall(command)[0]
-            ret[uid] = self.get_body(data)
+            ret[uid] = self.parse(data)
 
         return ret
 
-    def get_body(self, data):
+    def parse(self, data: Tuple[Any]) -> Dict[str, str]:
+        """Parse an email."""
+
         ret = {}
         msg = message_from_bytes(data)
         body = ""
@@ -129,15 +132,15 @@ class Client:
                 f"{self.dec(person)} <{addr}>" if person else addr
                 for person, addr in getaddresses(msg.get_all("From"))
             )
-        )
+        ).lower()
         ret["addr_to"] = ", ".join(
             (
                 f"{self.dec(person)} <{addr}>" if person else addr
                 for person, addr in getaddresses(msg.get_all("To"))
             )
-        )
-        ret["message"] = self.dec(body)
-        ret["subject"] = self.dec(msg["Subject"])
+        ).lower()
+        ret["message"] = self.dec(body).lower()
+        ret["subject"] = self.dec(msg["Subject"]).lower()
 
         return ret
 
