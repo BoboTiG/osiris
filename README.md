@@ -15,9 +15,19 @@ For instance, let's define the password for the account `contact@example.com`:
     # Windows
     set CONTACT_EXAMPLE_COM_PWD=my_password
 
-### Configuration File
+## Configuration File
 
 See `rules.ini` for examples.
+
+## Available Data
+
+All data is converted to *lowercase string* to ease filtering.
+Note that emails are not marked as read, Osiris will do a `BODY.PEEK` to not alter emails state.
+
+- `addr_from`: The full FROM header value (can be a simple email address or something like "John Doe" <john@doe.com>).
+- `addr_to`: The full TO header value (can be a simple email address or something like "John Doe" <john@doe.com>)..
+- `message`: The email message.
+- `subject`: The email subject.
 
 ## Automating
 
