@@ -3,7 +3,9 @@ import logging
 import re
 from collections import defaultdict
 from contextlib import suppress
+from email import message_from_bytes
 from email.header import decode_header
+from email.utils import getaddresses
 from typing import Any, Dict, List, Tuple, Union
 
 from dataclasses import dataclass, field
@@ -24,6 +26,8 @@ class Client:
     conn: imaplib.IMAP4 = field(default=None, init=False, repr=False)
     password: str = field(default=None, repr=False)
     stats: Dict[str, int] = field(default_factory=dict, repr=False)
+    # BODY.PEEK to not alter the message state
+    fetch_pattern: str = field(default="(BODY.PEEK[])", repr=False)
 
     def __post_init__(self):
         self.stats = defaultdict(int)
@@ -59,12 +63,21 @@ class Client:
         self.conn.select()
         log.debug(f"Added {self}")
 
+    @staticmethod
+    def dec(header):
+        if isinstance(header, bytes):
+            header = header.decode("latin-1")
+
+        val, encoding = decode_header(header)[0]
+        if isinstance(val, bytes):
+            try:
+                val = val.decode(encoding or "latin-1")
+            except UnicodeDecodeError:
+                val = val.decode("latin-1")
+        return val
+
     def emails(self, full: bool = False) -> List[str]:
         """Retreive emails."""
-
-        ret = {}
-        # reg_from = re.compile(b"<(.+)>")
-        reg_uid = re.compile(br"UID (\d+)")
 
         search = "(ALL)" if full else "(NOT DELETED)"
         typ, dat = self.conn.uid("search", None, search)
@@ -73,57 +86,58 @@ class Client:
 
         uids = dat[0].split()
         if not uids:
-            return ret
+            return {}
 
-        #  BODY.PEEK to not alter the message state
-        typ, dat = self.conn.uid(
-            "fetch", b",".join(uids), "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT TO)])"
-        )
+        typ, dat = self.conn.uid("fetch", b",".join(uids), self.fetch_pattern)
         if typ != "OK":
             raise dat[0]
 
-        for data in dat:
-            info = data[0]
-            data = b"".join(data[1:]).strip().splitlines()
-            if not data:
+        ret = {}
+        # reg_from = re.compile(b"<(.+)>")
+        reg_uid = re.compile(br"UID (\d+)")
+
+        for raw_data in dat:
+            if len(raw_data) == 1:  # Invalid chunk?!
                 continue
 
-            uid = reg_uid.findall(info)[0]
-            ret[uid] = {}
-            for line in data:
-                line = line.lower().strip()
-                if not line:
-                    continue
+            command, data = raw_data
+            uid = reg_uid.findall(command)[0]
+            ret[uid] = self.get_body(data)
 
-                if line.startswith(b"subject:"):
-                    key = "subject"
-                    val = line.partition(b"subject:")[2]
-                elif line.startswith(b"to:"):
-                    key = "addr_to"
-                    val = line.partition(b"to:")[2]
-                    # Only the email address
-                    # address = reg_from.findall(val)
-                    # if address:
-                    #     val = address[0]
-                elif line.startswith(b"from:"):
-                    key = "addr_from"
-                    val = line.partition(b"from:")[2]
-                    # Only the email address
-                    # address = reg_from.findall(val)
-                    # if address:
-                    #     val = address[0]
+        return ret
 
-                if isinstance(val, bytes):
-                    val, encoding = decode_header(val.decode("utf-8"))[0]
-                    if not encoding:
-                        encoding = "utf-8"
-                    if isinstance(val, bytes):
-                        try:
-                            val = val.decode(encoding)
-                        except UnicodeDecodeError:
-                            val = val.decode("latin-1")
+    def get_body(self, data):
+        ret = {}
+        msg = message_from_bytes(data)
+        body = ""
 
-                ret[uid][key] = val.strip()
+        if msg.is_multipart():
+            for part in msg.walk():
+                ctype = part.get_content_type()
+                cdispo = str(part.get("Content-Disposition", ""))
+
+                # Skip any text/plain attachments
+                if ctype == "text/plain" and "attachment" not in cdispo:
+                    body = part.get_payload(decode=True)
+                    break
+        else:
+            # Not multipart - i.e. plain text, no attachments, keeping fingers crossed
+            body = msg.get_payload(decode=True)
+
+        ret["addr_from"] = ", ".join(
+            (
+                f"{self.dec(person)} <{addr}>" if person else addr
+                for person, addr in getaddresses(msg.get_all("From"))
+            )
+        )
+        ret["addr_to"] = ", ".join(
+            (
+                f"{self.dec(person)} <{addr}>" if person else addr
+                for person, addr in getaddresses(msg.get_all("To"))
+            )
+        )
+        ret["message"] = self.dec(body)
+        ret["subject"] = self.dec(msg["Subject"])
 
         return ret
 
