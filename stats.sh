@@ -2,7 +2,7 @@
 
 # Print number of actions by day.
 sql="\
-   SELECT strftime('%Y-%m-%d', run_at) d, action, count(count) \
+   SELECT strftime('%Y-%m-%d', run_at) d, action, SUM(count) \
      FROM osiris \
  GROUP BY d, action \
 "
