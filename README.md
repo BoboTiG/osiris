@@ -24,10 +24,21 @@ See `rules.ini` for examples.
 All data is converted to *lowercase string* to ease filtering.
 Note that emails are not marked as read, Osiris will do a `BODY.PEEK` to not alter emails state.
 
-- `addr_from`: The full FROM header value (can be a simple email address or something like "John Doe" <john@doe.com>).
-- `addr_to`: The full TO header value (can be a simple email address or something like "John Doe" <john@doe.com>)..
-- `message`: The email message.
+- `addr_from`: The full `From` header value.
+- `addr_to`: The full `To` header value.
+- `delivered_to`: The full `Delivered-To` header value.
+- `message`: The email body.
+- `msgid`: The email `Message-ID`.
+- `reply_to`: The full `Reply-To` header value.
 - `subject`: The email subject.
+- `ua`: The user-agent used to send the email.
+
+Each field containing email ID can have the following format:
+
+- `john@doe.com`
+- `John Doe <john@doe.com>`
+- `John Doe <john@doe.com>, Jane Doe <jane@doe.com>, ... `
+- `John Doe <john@doe.com>, jane@doe.com, ... `
 
 ## Automating
 

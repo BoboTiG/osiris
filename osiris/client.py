@@ -64,7 +64,7 @@ class Client:
         log.debug(f"Added {self}")
 
     @staticmethod
-    def dec(header: Union[bytes, str]) -> Dict[str, str]:
+    def dec(header: Union[bytes, str]) -> str:
         """Decode an email header, if necessary."""
 
         if isinstance(header, bytes):
@@ -127,20 +127,23 @@ class Client:
             # Not multipart - i.e. plain text, no attachments, keeping fingers crossed
             body = msg.get_payload(decode=True)
 
-        ret["addr_from"] = ", ".join(
-            (
-                f"{self.dec(person)} <{addr}>" if person else addr
-                for person, addr in getaddresses(msg.get_all("From"))
-            )
-        ).lower()
-        ret["addr_to"] = ", ".join(
-            (
-                f"{self.dec(person)} <{addr}>" if person else addr
-                for person, addr in getaddresses(msg.get_all("To"))
-            )
-        ).lower()
+        def fmt_addr(header: List[Union[bytes, str]]) -> str:
+            """Format address(es)."""
+            return ", ".join(
+                (
+                    f"{self.dec(person)} <{addr}>" if person else addr
+                    for person, addr in getaddresses(msg.get_all(header, []))
+                )
+            ).lower()
+
+        ret["addr_from"] = fmt_addr("From")
+        ret["addr_to"] = fmt_addr("To")
+        ret["delivered_to"] = fmt_addr("Delivered-To")
         ret["message"] = self.dec(body).lower()
+        ret["msgid"] = msg.get("Message-ID", "").lower()
+        ret["reply_to"] = fmt_addr("Reply-To")
         ret["subject"] = self.dec(msg["Subject"]).lower()
+        ret["ua"] = msg.get("User-Agent", "").lower()
 
         return ret
 
