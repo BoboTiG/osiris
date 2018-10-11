@@ -41,10 +41,10 @@ def main(args: Optional[List[str]] = None) -> int:
     if options.debug or getenv("DEBUG"):
         level = logging.DEBUG
         environ["DEBUG"] = "1"
-    elif not options.quiet:
-        logging.INFO
-    else:
+    elif options.quiet:
         level = logging.WARNING
+    else:
+        level = logging.INFO
     logging.basicConfig(level=level)
 
     if not options.config_file:
