@@ -78,3 +78,5 @@ There is also a shell script that can display the number of operations day by da
 
     python -m pip install tox
     tox
+
+You can set the `DEBUG` envar to `1` to print actions done instead of actually doing actions.

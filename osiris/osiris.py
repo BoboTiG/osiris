@@ -95,6 +95,10 @@ class Osiris:
 
                 # Batch mode (deelte several UIDs, ... )
                 for action, uids in todo.items():
+                    if getenv("DEBUG"):
+                        log.debug(f"Applying {action!r} action to {uids} UIDs")
+                        continue
+
                     if ":" in action:
                         action, folder = action.split(":", 1)
                     else:

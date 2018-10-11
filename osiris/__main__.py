@@ -1,6 +1,7 @@
 import logging
 import sys
 from argparse import ArgumentParser
+from os import environ, getenv
 from typing import List, Optional
 
 from . import __version__
@@ -37,9 +38,13 @@ def main(args: Optional[List[str]] = None) -> int:
             print(" ", doc)
         return 0
 
-    level = logging.WARNING
-    if not options.quiet:
-        level = logging.DEBUG if options.debug else logging.INFO
+    if options.debug or getenv("DEBUG"):
+        level = logging.DEBUG
+        environ["DEBUG"] = "1"
+    elif not options.quiet:
+        logging.INFO
+    else:
+        level = logging.WARNING
     logging.basicConfig(level=level)
 
     if not options.config_file:
