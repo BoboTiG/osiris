@@ -103,7 +103,11 @@ class Client:
 
             command, data = raw_data
             uid = reg_uid.findall(command)[0]
-            ret[uid] = self.parse(data)
+            try:
+                ret[uid] = self.parse(data)
+            except TypeError:
+                # https://bugs.python.org/issue27513
+                log.exception("bpo-27513: Error when trying to decode email header")
 
         return ret
 
