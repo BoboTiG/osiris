@@ -98,7 +98,7 @@ class Client:
         reg_uid = re.compile(br"UID (\d+)")
 
         for raw_data in dat:
-            if len(raw_data) == 1:  # Invalid chunk?!
+            if len(raw_data) != 2:  # Invalid chunk?!
                 continue
 
             command, data = raw_data
