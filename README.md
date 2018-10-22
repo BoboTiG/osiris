@@ -51,7 +51,7 @@ Cron job line:
 A simple SQLite3 database named `statistics.db` will be filled with actions done for each and every user.
 There is also a shell script that can display the number of operations day by day:
 
-    bash stats.sh [LINES]
+    bash stats.sh [[LINES] [--all]]
     2018-10-08|delete|225
     2018-10-08|move|3
     2018-10-07|delete|14
@@ -68,6 +68,10 @@ There is also a shell script that can display the number of operations day by da
     2018-10-02|move|14
     2018-10-01|delete|554
     2018-10-01|move|7
+
+    bash stats.sh --all
+    delete|8156
+    move|22
 
 ## Developing
 
