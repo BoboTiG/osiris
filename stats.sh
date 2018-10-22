@@ -12,7 +12,7 @@ show_all() {
 GROUP BY action \
 ;"
 
-    sqlite3 statistics.db "${sql}"
+    sqlite3 -readonly statistics.db "${sql}"
 }
 
 show() {
@@ -31,7 +31,7 @@ ORDER BY d DESC \
    LIMIT ${lines} \
 ;"
 
-    sqlite3 statistics.db "${sql}"
+    sqlite3 -readonly statistics.db "${sql}"
 }
 
 main() {
