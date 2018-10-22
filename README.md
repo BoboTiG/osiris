@@ -24,6 +24,7 @@ See `rules.ini` for examples.
 All data is converted to *lowercase string* to ease filtering.
 Note that emails are not marked as read, Osiris will do a `BODY.PEEK` to not alter emails state.
 
+- `addr_cc`: The full `Cc` header value.
 - `addr_from`: The full `From` header value.
 - `addr_to`: The full `To` header value.
 - `delivered_to`: The full `Delivered-To` header value.

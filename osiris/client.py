@@ -140,6 +140,7 @@ class Client:
                 )
             ).lower()
 
+        ret["addr_cc"] = fmt_addr("Cc")
         ret["addr_from"] = fmt_addr("From")
         ret["addr_to"] = fmt_addr("To")
         ret["delivered_to"] = fmt_addr("Delivered-To")
