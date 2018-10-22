@@ -1,5 +1,6 @@
 import logging
-from configparser import ConfigParser
+from configparser import ConfigParser, NoOptionError
+from contextlib import suppress
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
@@ -31,15 +32,18 @@ class Rules:
 
     @staticmethod
     def read_rule(section) -> Tuple[str, List[str]]:
-        """Retreive rules of a given user."""
+        """Read a rule and return valuable information."""
         actions = section.strip().splitlines()
         criterias = actions.pop(0)
         return criterias, actions
 
     def get(self, user: str) -> Dict[str, Tuple[str, List[str]]]:
-        """"Retreive rules of all users."""
-        section = f"{user}:rules"
-        rules = sorted(self.parser.items(section))
+        """"Retreive rules of a given user.
+        Also appened rules from the "ALL" section that apply to every accounts."""
+        rules = []
+        with suppress(NoOptionError):
+            rules = sorted(self.parser.items("ALL"))
+        rules.extend(sorted(self.parser.items(f"{user}:rules")))
         return {k: self.read_rule(v) for k, v in rules}
 
     def server(self, user: str) -> str:

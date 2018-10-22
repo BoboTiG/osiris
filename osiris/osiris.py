@@ -39,7 +39,7 @@ class Osiris:
         log.debug(f"Starting {type(self).__name__} ...")
         self.rules: Rules = Rules(self.file)
         for user in self.rules.parser.sections():
-            if user.endswith(":rules"):
+            if user.endswith(":rules") or user == "ALL":
                 continue
 
             server = self.rules.server(user)
