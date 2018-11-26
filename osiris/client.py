@@ -71,9 +71,13 @@ class Client:
             header = header.decode("latin-1")
 
         val, encoding = decode_header(header)[0]
+        errors = "strict"
         if isinstance(val, bytes):
+            if encoding == "unknown-8bit":
+                encoding = "latin-1"
+                errors = "ignore"
             try:
-                val = val.decode(encoding or "latin-1")
+                val = val.decode(encoding or "latin-1", errors=errors)
             except UnicodeDecodeError:
                 val = val.decode("latin-1")
         return val
