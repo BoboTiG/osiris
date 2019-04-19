@@ -154,6 +154,12 @@ class Client:
         ret["subject"] = self.dec(msg["Subject"]).lower()
         ret["ua"] = msg.get("User-Agent", "").lower()
 
+        # Naive checks for spam
+        is_spam = msg.get("X-Spam-Flag", "").lower() == "yes"
+        if not is_spam:
+            is_spam = msg.get("X-GND-Status", "").lower() == "spam"
+        ret["is_spam"] = is_spam
+
         return ret
 
     # Actions
