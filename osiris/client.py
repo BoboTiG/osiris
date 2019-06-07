@@ -115,6 +115,22 @@ class Client:
 
         return ret
 
+    def is_spam(self, msg) -> bool:
+        """Naive checks for spam."""
+
+        spam = msg.get("X-Spam-Flag", "").lower() == "yes"
+        if not spam:
+            spam = msg.get("X-GND-Status", "").lower() == "spam"
+        if not spam:
+            # If it seems to be a spam, the value will be one or more plus (+).
+            # When not a spam, the value is a slash (/).
+            # Other associated headers are:
+            #   X-Atmail-Spam-score (ie: 3.6)
+            #   X-Atmail-Spam-score_int (ie: 36)
+            spam = "+" in msg.get("X-Atmail-Spam-bar", "")
+
+        return spam
+
     def parse(self, data: Tuple[Any]) -> Dict[str, str]:
         """Parse an email."""
 
@@ -153,12 +169,7 @@ class Client:
         ret["reply_to"] = fmt_addr("Reply-To")
         ret["subject"] = self.dec(msg["Subject"]).lower()
         ret["ua"] = msg.get("User-Agent", "").lower()
-
-        # Naive checks for spam
-        is_spam = msg.get("X-Spam-Flag", "").lower() == "yes"
-        if not is_spam:
-            is_spam = msg.get("X-GND-Status", "").lower() == "spam"
-        ret["is_spam"] = is_spam
+        ret["is_spam"] = self.is_spam(msg)
 
         return ret
 
