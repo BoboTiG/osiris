@@ -1,15 +1,12 @@
-import pytest
-
 from osiris.rules import Rules
+
+from .constants import FILE, USER
 
 
 def test_get_rules():
-    rules = Rules(file=pytest.file)
-    rules_mika = rules.get("mickael@jmsinfo.co")
+    rules = Rules(file=FILE)
+    rules_mika = rules.get(USER)
     good = {
-        "mms": (
-            'subject.startswith("mms") and "mickael@jmsinfo.co" in addr_from',
-            "move:Perso",
-        )
+        "mms": (f'subject.startswith("mms") and "{USER}" in addr_from', "move:Perso")
     }
     assert rules_mika == good
