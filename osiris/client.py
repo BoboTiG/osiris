@@ -3,6 +3,7 @@ import logging
 import re
 from collections import defaultdict
 from contextlib import suppress
+from itertools import zip_longest
 from email import message_from_bytes
 from email.header import decode_header
 from email.utils import getaddresses
@@ -17,6 +18,13 @@ UIDs = Union[bytes, List[bytes]]
 log = logging.getLogger(__name__)
 
 
+def grouper(iterable, n, fillvalue=None):
+    """Collect data into fixed-length chunks or blocks."""
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
+
+
 @dataclass
 class Client:
     """Informations of a user that will be judged soon."""
@@ -28,6 +36,7 @@ class Client:
     stats: Dict[str, int] = field(default_factory=dict, repr=False)
     # BODY.PEEK to not alter the message state
     fetch_pattern: str = field(default="(BODY.PEEK[])", repr=False)
+    batch_size: int = field(default=256)
 
     def __post_init__(self):
         self.stats = defaultdict(int)
@@ -90,28 +99,36 @@ class Client:
         if typ != "OK":
             raise dat[0]
 
-        uids = dat[0].split()
-        if not uids:
+        all_uids = dat[0].split()
+        if not all_uids:
             return {}
-
-        typ, dat = self.conn.uid("fetch", b",".join(uids), self.fetch_pattern)
-        if typ != "OK":
-            raise dat[0]
 
         ret = {}
         reg_uid = re.compile(br"UID (\d+)")
 
-        for raw_data in dat:
-            if len(raw_data) != 2:  # Invalid chunk?!
-                continue
+        len_uids = len(all_uids)
+        rounds = len_uids // self.batch_size + (1 if len_uids % self.batch_size else 0)
+        log.debug(f"Retrieving {len_uids:,} emails (batch size is {self.batch_size:,}, {rounds:,} rounds) ...")
+        for batch, some_uids in enumerate(grouper(all_uids, self.batch_size), 1):
+            # Filter out empty UIDs filled by grouper()
+            uids = [u for u in some_uids if u is not None]
 
-            command, data = raw_data
-            uid = reg_uid.findall(command)[0]
-            try:
-                ret[uid] = self.parse(data)
-            except TypeError:
-                # https://bugs.python.org/issue27513
-                log.exception("bpo-27513: Error when trying to decode email header")
+            log.debug(f"[round {batch}] Fetching {len(uids):,} emails ...")
+            typ, dat = self.conn.uid("fetch", b",".join(uids), self.fetch_pattern)
+            if typ != "OK":
+                raise dat[0]
+
+            for raw_data in dat:
+                if len(raw_data) != 2:  # Invalid chunk?!
+                    continue
+
+                command, data = raw_data
+                uid = reg_uid.findall(command)[0]
+                try:
+                    ret[uid] = self.parse(data)
+                except TypeError:
+                    # https://bugs.python.org/issue27513
+                    log.exception("bpo-27513: Error when trying to decode email header")
 
         return ret
 
