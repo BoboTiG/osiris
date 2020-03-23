@@ -42,11 +42,11 @@ class Client:
         self.stats = defaultdict(int)
 
     def __enter__(self) -> "Client":
-        log.debug(f"Loading {type(self).__name__} ...")
+        log.debug(f"Loading {self} ...")
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
-        log.debug(f"Stopping {type(self).__name__}: {dict(self.stats.items())} ...")
+        log.debug(f"Stopping {self} ...")
         self.close()
 
     def close(self):
@@ -108,7 +108,9 @@ class Client:
 
         len_uids = len(all_uids)
         rounds = len_uids // self.batch_size + (1 if len_uids % self.batch_size else 0)
-        log.debug(f"Retrieving {len_uids:,} emails (batch size is {self.batch_size:,}, {rounds:,} rounds) ...")
+        log.debug(
+            f"Retrieving {len_uids:,} emails (batch size is {self.batch_size:,}, round count is {rounds:,}) ..."
+        )
         for batch, some_uids in enumerate(grouper(all_uids, self.batch_size), 1):
             # Filter out empty UIDs filled by grouper()
             uids = [u for u in some_uids if u is not None]

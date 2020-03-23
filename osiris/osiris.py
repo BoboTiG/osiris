@@ -1,3 +1,5 @@
+import asyncio
+import concurrent.futures as cf
 import imaplib
 import logging
 import sqlite3
@@ -5,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 from os import getenv
 from pathlib import Path
+from threading import Lock
 from typing import Any, List, Union
 
 from dataclasses import dataclass, field
@@ -15,6 +18,7 @@ from .rules import Rules
 
 
 log = logging.getLogger(__name__)
+lock = Lock()
 
 
 @dataclass
@@ -62,58 +66,77 @@ class Osiris:
             ")"
         )
 
-    def judge(self) -> None:
-        """Judgement day: apply actions on emails based on rules."""
+    def _judge(self, client: Client) -> None:
+        """Effectively apply actions on emails based on rules."""
 
-        run_at = datetime.now().replace(second=0, microsecond=0)
+        with client:
+            run_at = datetime.now().replace(second=0, microsecond=0)
 
-        for client in self.clients:
-            with client:
-                client.connect()
-                emails = client.emails(full=self.full)
-                if not emails:
-                    log.debug(f"[{client.user}] No emails")
-                    continue
+            client.connect()
+            emails = client.emails(full=self.full)
+            if not emails:
+                log.debug(f"[{client.user}] No emails")
+                return
 
-                todo = defaultdict(list)
-                rules = self.rules.get(client.user)
-                for name, (criterias, actions) in rules.items():
-                    for uid, data in list(emails.items()):
-                        # Check if the email meets critierias of that rule
-                        if not eval(criterias, None, data):
-                            continue
-
-                        log.debug(
-                            f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
-                        )
-
-                        # Regroup actions for efficiency
-                        for action in actions:
-                            todo[action].append(uid)
-
-                        emails.pop(uid, None)
-
-                # Batch mode (deelte several UIDs, ... )
-                for action, uids in todo.items():
-                    if getenv("DEBUG"):
-                        log.debug(f"Applying {action!r} action to {uids} UIDs")
+            todo = defaultdict(list)
+            rules = self.rules.get(client.user)
+            for name, (criterias, actions) in rules.items():
+                for uid, data in list(emails.items()):
+                    # Check if the email meets critierias of that rule
+                    if not eval(criterias, None, data):
                         continue
 
-                    if ":" in action:
-                        action, folder = action.split(":", 1)
-                    else:
-                        folder = None
+                    log.debug(
+                        f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
+                    )
 
-                    try:
-                        getattr(client, f"action_{action}")(uids, folder=folder)
-                    except AttributeError as exc:
-                        log.error(exc)
-                        raise InvalidAction(action)
-                    except imaplib.IMAP4.abort:
-                        log.error("Error happened, will retry later")
+                    # Regroup actions for efficiency
+                    for action in actions:
+                        todo[action].append(uid)
 
-                if client.stats:
-                    self.save_stats(run_at, client)
+                    emails.pop(uid, None)
+
+            # Batch mode (delete several UIDs, ... )
+            for action, uids in todo.items():
+                if getenv("DEBUG"):
+                    log.debug(f"Applying {action!r} action to {uids} UIDs")
+                    continue
+
+                if ":" in action:
+                    action, folder = action.split(":", 1)
+                else:
+                    folder = None
+
+                try:
+                    getattr(client, f"action_{action}")(uids, folder=folder)
+                except AttributeError as exc:
+                    log.error(exc)
+                    raise InvalidAction(action)
+                except imaplib.IMAP4.abort:
+                    log.error("Error happened, will retry later")
+
+            if client.stats:
+                self.save_stats(run_at, client)
+
+    def judge_async(self) -> None:
+        """Async judgement day: apply actions on emails based on rules."""
+
+        async def run():
+            with cf.ThreadPoolExecutor() as executor:
+                loop = asyncio.get_event_loop()
+                futures = [
+                    loop.run_in_executor(executor, self._judge, client)
+                    for client in self.clients
+                ]
+                await asyncio.gather(*futures)
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(run())
+
+    def judge(self) -> None:
+        """Judgement day: apply actions on emails based on rules."""
+        for client in self.clients:
+            self._judge(client)
 
     @staticmethod
     def password_envar(user: str) -> str:
@@ -125,9 +148,10 @@ class Osiris:
 
     def save_stats(self, run_at: datetime, client: Client) -> None:
         """Save client statistics in the local dataase."""
-        user = client.user
-        c = self.db.cursor()
-        sql = "INSERT INTO osiris(run_at, user, action, count) VALUES(?,?,?,?)"
-        for action, count in client.stats.items():
-            c.execute(sql, (run_at, user, action, count))
-        self.db.commit()
+        with lock:
+            user = client.user
+            c = self.db.cursor()
+            sql = "INSERT INTO osiris(run_at, user, action, count) VALUES(?,?,?,?)"
+            for action, count in client.stats.items():
+                c.execute(sql, (run_at, user, action, count))
+            self.db.commit()

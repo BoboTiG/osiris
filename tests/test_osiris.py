@@ -11,3 +11,8 @@ def test_instanciation():
 def test_1_client():
     with Osiris(file=FILE) as osiris:
         osiris.judge()
+
+
+def test_1_client_async():
+    with Osiris(file=FILE) as osiris:
+        osiris.judge_async()

@@ -53,7 +53,7 @@ def main(args: Optional[List[str]] = None) -> int:
 
     try:
         with Osiris(file=options.config_file, full=options.full) as osiris:
-            osiris.judge()
+            osiris.judge_async()
         return 0
     except OsirisError as exc:
         print(exc)
