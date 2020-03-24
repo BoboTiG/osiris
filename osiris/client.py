@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import suppress
 from itertools import zip_longest
 from email import message_from_bytes
+from email.message import Message
 from email.header import decode_header
 from email.utils import getaddresses
 from typing import Any, Dict, List, Tuple, Union
@@ -72,25 +73,6 @@ class Client:
         self.conn.select()
         log.debug(f"Added {self}")
 
-    @staticmethod
-    def dec(header: Union[bytes, str]) -> str:
-        """Decode an email header, if necessary."""
-
-        if isinstance(header, bytes):
-            header = header.decode("latin-1")
-
-        val, encoding = decode_header(header)[0]
-        errors = "strict"
-        if isinstance(val, bytes):
-            if encoding == "unknown-8bit":
-                encoding = "latin-1"
-                errors = "ignore"
-            try:
-                val = val.decode(encoding or "latin-1", errors=errors)
-            except UnicodeDecodeError:
-                val = val.decode("latin-1")
-        return val
-
     def emails(self, full: bool = False) -> List[str]:
         """Retreive emails."""
 
@@ -153,8 +135,8 @@ class Client:
     def parse(self, data: Tuple[Any]) -> Dict[str, str]:
         """Parse an email."""
 
-        ret = {}
         msg = message_from_bytes(data)
+        ret = {sanitize_header(k): v.lower() for k, v in msg.items()}
         body = ""
 
         if msg.is_multipart():
@@ -170,25 +152,16 @@ class Client:
             # Not multipart - i.e. plain text, no attachments, keeping fingers crossed
             body = msg.get_payload(decode=True)
 
-        def fmt_addr(header: List[Union[bytes, str]]) -> str:
-            """Format address(es)."""
-            return ", ".join(
-                (
-                    f"{self.dec(person)} <{addr}>" if person else addr
-                    for person, addr in getaddresses(msg.get_all(header, []))
-                )
-            ).lower()
-
-        ret["addr_cc"] = fmt_addr("Cc")
-        ret["addr_from"] = fmt_addr("From")
-        ret["addr_to"] = fmt_addr("To")
-        ret["delivered_to"] = fmt_addr("Delivered-To")
-        ret["message"] = self.dec(body).lower()
-        ret["msgid"] = msg.get("Message-ID", "").lower()
-        ret["reply_to"] = fmt_addr("Reply-To")
-        ret["subject"] = self.dec(msg["Subject"]).lower()
-        ret["ua"] = msg.get("User-Agent", "").lower()
+        ret["addr_cc"] = fmt_addr(msg, "Cc")
+        ret["addr_from"] = fmt_addr(msg, "From")
+        ret["addr_to"] = fmt_addr(msg, "To")
+        ret["delivered_to"] = fmt_addr(msg, "Delivered-To")
         ret["is_spam"] = self.is_spam(msg)
+        ret["message"] = decode(body).lower()
+        ret["msgid"] = msg.get("Message-ID", "").lower()
+        ret["reply_to"] = fmt_addr(msg, "Reply-To")
+        ret["subject"] = decode(msg["Subject"]).lower()
+        ret["ua"] = msg.get("User-Agent", "").lower()
 
         return ret
 
@@ -258,3 +231,37 @@ class Client:
         self.action_delete(uids, inner=True)
 
         self.stats["move"] += uids.count(b",") + 1
+
+
+def decode(header: Union[bytes, str]) -> str:
+    """Decode an email header, if necessary."""
+
+    if isinstance(header, bytes):
+        header = header.decode("latin-1")
+
+    val, encoding = decode_header(header)[0]
+    errors = "strict"
+    if isinstance(val, bytes):
+        if encoding == "unknown-8bit":
+            encoding = "latin-1"
+            errors = "ignore"
+        try:
+            val = val.decode(encoding or "latin-1", errors=errors)
+        except UnicodeDecodeError:
+            val = val.decode("latin-1")
+    return val
+
+
+def fmt_addr(msg: Message, header: List[Union[bytes, str]]) -> str:
+    """Format address(es)."""
+    return ", ".join(
+        (
+            f"{decode(person)} <{addr}>" if person else addr
+            for person, addr in getaddresses(msg.get_all(header, []))
+        )
+    ).lower()
+
+
+def sanitize_header(value: str) -> str:
+    """Sanitize email header names."""
+    return value.lower().replace("-", "_")

@@ -34,6 +34,15 @@ Note that emails are not marked as read, Osiris will do a `BODY.PEEK` to not alt
 - `subject`: The email subject.
 - `ua`: The user-agent used to send the email.
 
+Also all email headers are available under their "sanitized" form.
+For instance, if you have a Gandi.net account and would like to filter out emails on the [X-GND-Status]() headers, you would use such rule:
+
+    gandi_commercial =
+        x_gnd_status == "mce"
+        delete
+
+The original header can be found in the lowercase form, and underscores are replaced with dashes: `X-GND-Status` -> `x_gnd_status`.
+
 Each field containing email ID can have the following format:
 
 - `john@doe.com`
