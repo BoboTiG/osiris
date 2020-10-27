@@ -1,9 +1,7 @@
-# coding: utf-8
-
+"""Osiris."""
 from setuptools import setup
 
-from osiris import __version__
-
+from osiris import __version__ as version
 
 with open("README.md") as f:
     description = f.read()
@@ -16,10 +14,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
 ]
 config = {
     "name": "osiris",
-    "version": __version__,
+    "version": version,
     "author": "Tiger-222",
     "author_email": "contact@tiger-222.fr",
     "maintainer": "Tiger-222",
