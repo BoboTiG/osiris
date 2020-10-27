@@ -9,10 +9,10 @@ You can always get the latest version of this module at:
 If that URL should fail, try contacting the author.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Mickaël 'Tiger-222' Schoentgen"
 __copyright__ = """
-    Copyright (c) 2018, Mickaël 'Tiger-222' Schoentgen
+    Copyright (c) 2018-2020, Mickaël 'Tiger-222' Schoentgen
 
     Permission to use, copy, modify, and distribute this software and its
     documentation for any purpose and without fee or royalty is hereby

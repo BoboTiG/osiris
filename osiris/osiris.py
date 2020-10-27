@@ -4,18 +4,16 @@ import imaplib
 import logging
 import sqlite3
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from os import getenv
 from pathlib import Path
 from threading import Lock
 from typing import Any, List, Union
 
-from dataclasses import dataclass, field
-
 from .client import Client
 from .exceptions import InvalidAction, MissingEnvPassword
 from .rules import Rules
-
 
 log = logging.getLogger(__name__)
 lock = Lock()
@@ -82,6 +80,9 @@ class Osiris:
             rules = self.rules.get(client.user)
             for name, (criterias, actions) in rules.items():
                 for uid, data in list(emails.items()):
+                    # Let the possibility to fetch any header without having AttributeError
+                    data["headers"] = data
+
                     # Check if the email meets critierias of that rule
                     if not eval(criterias, None, data):
                         continue
