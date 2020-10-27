@@ -68,8 +68,6 @@ class Osiris:
         """Effectively apply actions on emails based on rules."""
 
         with client:
-            run_at = datetime.now().replace(second=0, microsecond=0)
-
             client.connect()
             emails = client.emails(full=self.full)
             if not emails:
@@ -116,9 +114,6 @@ class Osiris:
                 except imaplib.IMAP4.abort:
                     log.error("Error happened, will retry later")
 
-            if client.stats:
-                self.save_stats(run_at, client)
-
     def judge_async(self) -> None:
         """Async judgement day: apply actions on emails based on rules."""
 
@@ -131,8 +126,14 @@ class Osiris:
                 ]
                 await asyncio.gather(*futures)
 
+        run_at = datetime.now().replace(second=0, microsecond=0)
+
         loop = asyncio.get_event_loop()
         loop.run_until_complete(run())
+
+        for client in self.clients:
+            if client.stats:
+                self.save_stats(run_at, client)
 
     def judge(self) -> None:
         """Judgement day: apply actions on emails based on rules."""
