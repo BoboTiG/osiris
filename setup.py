@@ -16,6 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
 ]
 config = {
     "name": "osiris",
@@ -24,10 +25,9 @@ config = {
     "author_email": "contact@tiger-222.fr",
     "maintainer": "Tiger-222",
     "maintainer_email": "contact@tiger-222.fr",
-    "url": "https://github.com/BoboTiG/python-mss",
+    "url": "https://github.com/BoboTiG/osiris",
     "description": (
-        "An ultra fast cross-platform multiple screenshots module "
-        "in pure python using ctypes."
+        "Osiris is a simple Python module to sort messages in your email box."
     ),
     "long_description": description,
     "classifiers": classifiers,
