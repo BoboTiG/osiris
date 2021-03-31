@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 
@@ -10,3 +12,12 @@ def no_warnings(recwarn):
         warnings.append(f"{w.filename}:{w.lineno} {w.message}")
 
     assert warnings == []
+
+
+@pytest.fixture
+def load_email():
+    def inner(name: str) -> bytes:
+        file = Path() / "tests" / "data" / f"{name}.email"
+        return file.read_bytes()
+
+    return inner
