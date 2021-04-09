@@ -60,7 +60,7 @@ def parse(data: Tuple[Any]) -> Dict[str, str]:
     """Parse an email."""
 
     msg = message_from_bytes(data)
-    ret = {sanitize_header(k): v.lower() for k, v in msg.items()}
+    ret = {sanitize_header(k): str(v).lower() for k, v in msg.items()}
     body = ""
 
     if msg.is_multipart():
