@@ -121,6 +121,9 @@ class Client:
                 yield ret
                 ret = {}
 
+        if ret:
+            yield ret
+
     # Actions
 
     @staticmethod
