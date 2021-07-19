@@ -53,7 +53,11 @@ class Osiris:
             client = Client(server=server, user=user, password=password, folder=folder)
             self.clients.append(client)
 
-        self.db = sqlite3.connect("statistics.db")
+        self.db = sqlite3.connect(
+            "statistics.db",
+            check_same_thread=False,  # Don't check same thread for closing purpose
+            isolation_level=None,  # Autocommit mode
+        )
         c = self.db.cursor()
         c.execute(
             "CREATE TABLE IF NOT EXISTS osiris("
@@ -120,7 +124,6 @@ class Osiris:
 
         if client.stats:
             self.save_stats(run_at, client)
-            client.stats = {}
 
     def _judge(self, client: Client) -> None:
         """Effectively apply actions on emails based on rules."""
@@ -176,3 +179,4 @@ class Osiris:
             for action, count in client.stats.items():
                 c.execute(sql, (run_at, user, action, count))
             self.db.commit()
+            client.stats = {}
