@@ -92,7 +92,9 @@ class Osiris:
 
         return todo
 
-    def _apply_judgement(self, client: Client, actions: defaultdict(list)) -> None:
+    def _apply_judgement(
+        self, client: Client, actions: defaultdict(list), run_at: datetime
+    ) -> None:
         """Apply actions."""
         # Batch mode (delete several UIDs, ... )
         for action, uids in actions.items():
@@ -113,10 +115,15 @@ class Osiris:
             except imaplib.IMAP4.abort:
                 log.error("Error happened, will retry later")
 
+        if client.stats:
+            self.save_stats(run_at, client)
+            client.stats = {}
+
     def _judge(self, client: Client) -> None:
         """Effectively apply actions on emails based on rules."""
 
         with client:
+            run_at = datetime.now().replace(second=0, microsecond=0)
             client.connect()
             rules = self.rules.get(client.user)
 
@@ -126,7 +133,7 @@ class Osiris:
                     return
 
                 actions = self._judge_those_emails(client, rules, emails)
-                self._apply_judgement(client, actions)
+                self._apply_judgement(client, actions, run_at)
 
     def judge_async(self) -> None:
         """Async judgement day: apply actions on emails based on rules."""
@@ -140,15 +147,9 @@ class Osiris:
                 ]
                 await asyncio.gather(*futures)
 
-        run_at = datetime.now().replace(second=0, microsecond=0)
-
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(run())
-
-        for client in self.clients:
-            if client.stats:
-                self.save_stats(run_at, client)
 
     def judge(self) -> None:
         """Judgement day: apply actions on emails based on rules."""
