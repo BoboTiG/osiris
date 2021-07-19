@@ -179,4 +179,4 @@ class Osiris:
             for action, count in client.stats.items():
                 c.execute(sql, (run_at, user, action, count))
             self.db.commit()
-            client.stats = {}
+            client.stats = defaultdict(int)
