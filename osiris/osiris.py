@@ -168,7 +168,7 @@ class Osiris:
         return envar
 
     def save_stats(self, run_at: datetime, client: Client) -> None:
-        """Save client statistics in the local dataase."""
+        """Save client statistics in the local database."""
         with lock:
             user = client.user
             c = self.db.cursor()
