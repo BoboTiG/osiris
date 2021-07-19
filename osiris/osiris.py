@@ -65,55 +65,68 @@ class Osiris:
             ")"
         )
 
+    def _judge_those_emails(
+        self, client: Client, rules: Rules, emails
+    ) -> defaultdict(list):
+        """Judge a batch of emails. Return actions to do."""
+        todo = defaultdict(list)
+
+        for name, (criterias, actions) in rules.items():
+            for uid, data in list(emails.items()):
+                # Let the possibility to fetch any header without having AttributeError
+                data["headers"] = data
+
+                # Check if the email meets critierias of that rule
+                if not eval(criterias, None, data):
+                    continue
+
+                log.debug(
+                    f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
+                )
+
+                # Regroup actions for efficiency
+                for action in actions:
+                    todo[action].append(uid)
+
+                emails.pop(uid, None)
+
+        return todo
+
+    def _apply_judgement(self, client: Client, actions: defaultdict(list)) -> None:
+        """Apply actions."""
+        # Batch mode (delete several UIDs, ... )
+        for action, uids in actions.items():
+            if getenv("DEBUG"):
+                log.debug(f"Applying {action!r} action to {uids} UIDs")
+                continue
+
+            if ":" in action:
+                action, folder = action.split(":", 1)
+            else:
+                folder = None
+
+            try:
+                getattr(client, f"action_{action}")(uids, folder=folder)
+            except AttributeError as exc:
+                log.error(exc)
+                raise InvalidAction(action)
+            except imaplib.IMAP4.abort:
+                log.error("Error happened, will retry later")
+
     def _judge(self, client: Client) -> None:
         """Effectively apply actions on emails based on rules."""
 
         with client:
             client.connect()
-            emails = client.emails(full=self.full)
-            if not emails:
-                log.debug(f"[{client.user}] No emails")
-                return
-
-            todo = defaultdict(list)
             rules = self.rules.get(client.user)
-            for name, (criterias, actions) in rules.items():
-                for uid, data in list(emails.items()):
-                    # Let the possibility to fetch any header without having AttributeError
-                    data["headers"] = data
 
-                    # Check if the email meets critierias of that rule
-                    if not eval(criterias, None, data):
-                        continue
+            for emails in client.emails(full=self.full):
+                if not emails:
+                    log.debug(f"[{client.user}] No more emails")
+                    return
 
-                    log.debug(
-                        f"[{client.user}] Rule {name!r} applies for {data} (uid={int(uid)})"
-                    )
-
-                    # Regroup actions for efficiency
-                    for action in actions:
-                        todo[action].append(uid)
-
-                    emails.pop(uid, None)
-
-            # Batch mode (delete several UIDs, ... )
-            for action, uids in todo.items():
-                if getenv("DEBUG"):
-                    log.debug(f"Applying {action!r} action to {uids} UIDs")
-                    continue
-
-                if ":" in action:
-                    action, folder = action.split(":", 1)
-                else:
-                    folder = None
-
-                try:
-                    getattr(client, f"action_{action}")(uids, folder=folder)
-                except AttributeError as exc:
-                    log.error(exc)
-                    raise InvalidAction(action)
-                except imaplib.IMAP4.abort:
-                    log.error("Error happened, will retry later")
+                actions = self._judge_those_emails(client, rules, emails)
+                self._apply_judgement(client, actions)
 
     def judge_async(self) -> None:
         """Async judgement day: apply actions on emails based on rules."""

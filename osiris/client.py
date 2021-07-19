@@ -34,6 +34,7 @@ class Client:
     # BODY.PEEK to not alter the message state
     fetch_pattern: str = field(default="(BODY.PEEK[])", repr=False)
     batch_size: int = field(default=256)
+    commit_size: int = field(default=256 * 8)
 
     def __post_init__(self):
         self.stats = defaultdict(int)
@@ -90,7 +91,10 @@ class Client:
         len_uids = len(all_uids)
         rounds = len_uids // self.batch_size + (1 if len_uids % self.batch_size else 0)
         log.debug(
-            f"Retrieving {len_uids:,} emails (batch size is {self.batch_size:,}, round count is {rounds:,}) ..."
+            f"Retrieving {len_uids:,} emails "
+            f"(batch size is {self.batch_size:,}, "
+            f"commit size is {self.commit_size:,}, "
+            f"round count is {rounds:,}) ..."
         )
         for batch, some_uids in enumerate(grouper(all_uids, self.batch_size), 1):
             # Filter out empty UIDs filled by grouper()
@@ -113,7 +117,9 @@ class Client:
                     # https://bugs.python.org/issue27513
                     log.exception("bpo-27513: Error when trying to decode email header")
 
-        return ret
+            if len(ret) >= self.commit_size:
+                yield ret
+                ret = {}
 
     # Actions
 
