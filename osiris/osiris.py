@@ -142,7 +142,8 @@ class Osiris:
 
         run_at = datetime.now().replace(second=0, microsecond=0)
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         loop.run_until_complete(run())
 
         for client in self.clients:
