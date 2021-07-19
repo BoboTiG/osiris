@@ -97,23 +97,26 @@ class Osiris:
     ) -> None:
         """Apply actions."""
         # Batch mode (delete several UIDs, ... )
-        for action, uids in actions.items():
-            if getenv("DEBUG"):
-                log.debug(f"Applying {action!r} action to {uids} UIDs")
-                continue
+        try:
+            for action, uids in actions.items():
+                if getenv("DEBUG"):
+                    log.debug(f"Applying {action!r} action to {uids} UIDs")
+                    continue
 
-            if ":" in action:
-                action, folder = action.split(":", 1)
-            else:
-                folder = None
+                if ":" in action:
+                    action, folder = action.split(":", 1)
+                else:
+                    folder = None
 
-            try:
-                getattr(client, f"action_{action}")(uids, folder=folder)
-            except AttributeError as exc:
-                log.error(exc)
-                raise InvalidAction(action)
-            except imaplib.IMAP4.abort:
-                log.error("Error happened, will retry later")
+                try:
+                    getattr(client, f"action_{action}")(uids, folder=folder)
+                except AttributeError as exc:
+                    log.error(exc)
+                    raise InvalidAction(action)
+                except imaplib.IMAP4.abort:
+                    log.error("Error happened, will retry later")
+        except KeyboardInterrupt:
+            pass
 
         if client.stats:
             self.save_stats(run_at, client)
