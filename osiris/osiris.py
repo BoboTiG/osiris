@@ -45,11 +45,12 @@ class Osiris:
                 continue
 
             server = self.rules.server(user)
+            folder = self.rules.folder(user)
             password = getenv(self.password_envar(user))
             if not password:
                 raise MissingEnvPassword(user, self.password_envar(user))
 
-            client = Client(server=server, user=user, password=password)
+            client = Client(server=server, user=user, password=password, folder=folder)
             self.clients.append(client)
 
         self.db = sqlite3.connect("statistics.db")

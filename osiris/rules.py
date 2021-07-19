@@ -38,7 +38,7 @@ class Rules:
         return criterias, actions
 
     def get(self, user: str) -> Dict[str, Tuple[str, List[str]]]:
-        """"Retreive rules of a given user.
+        """Retreive rules of a given user.
         Also appened rules from the "ALL" section that apply to every accounts."""
         rules = []
         with suppress(NoOptionError):
@@ -49,3 +49,7 @@ class Rules:
     def server(self, user: str) -> str:
         """Get the IMAP server."""
         return self.parser.get(user, "server")
+
+    def folder(self, user: str) -> str:
+        """Get the IMAP folder to scan."""
+        return self.parser.get(user, "folder", fallback=None)

@@ -29,6 +29,7 @@ class Client:
     user: str
     conn: imaplib.IMAP4 = field(default=None, init=False, repr=False)
     password: str = field(default=None, repr=False)
+    folder: str = field(default=None)
     stats: Dict[str, int] = field(default_factory=dict, repr=False)
     # BODY.PEEK to not alter the message state
     fetch_pattern: str = field(default="(BODY.PEEK[])", repr=False)
@@ -65,7 +66,10 @@ class Client:
         self.conn = imap(self.server, *args, **kwargs)
         self.conn.login(self.user, self.password)
         # self.conn.enable("UTF8=ACCEPT")
-        self.conn.select()
+        if self.folder:
+            self.conn.select(self.folder)
+        else:
+            self.conn.select()
         log.debug(f"Added {self}")
 
     def emails(self, full: bool = False) -> List[str]:
