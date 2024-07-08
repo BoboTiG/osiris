@@ -1,9 +1,9 @@
 *.egg-info
 statistics.db
 
-__pycache__
-.pytest_cache
-.tox
+__pycache__/
+.pytest_cache/
+.tox/
 
-venv
-.vscode
+venv*/
+.vscode/
